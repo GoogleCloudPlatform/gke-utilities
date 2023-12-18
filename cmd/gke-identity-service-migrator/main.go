@@ -43,8 +43,12 @@ func main() {
 // FindCRBCommand searches for and prints all ClusterRoleBindings that appear to
 // refer to users and groups federated using Identity Service for GKE.
 type FindCRBCommand struct {
-	kubeConfig      string
-	userEmailSuffix string
+	kubeConfig string
+
+	userIncludePrefix   string
+	userIncludeSuffix   string
+	groupsIncludePrefix string
+	groupsExcludeSuffix string
 }
 
 var _ subcommands.Command = (*FindCRBCommand)(nil)
@@ -72,17 +76,23 @@ func (c *FindCRBCommand) SetFlags(f *flag.FlagSet) {
 	}
 
 	f.StringVar(&c.kubeConfig, "kubeconfig", kubeConfigDefault, "absolute path to the kubeconfig file")
-	f.StringVar(&c.userEmailSuffix, "user-email-suffix", "", "Suffix for recognizing federated user identities.  Typically your organization's domain name.")
+	f.StringVar(&c.userIncludePrefix, "user-include-prefix", "", "Prefix for recognizing federated user identities.  Will be stripped from the translated user name.")
+	f.StringVar(&c.userIncludeSuffix, "user-include-suffix", "", "Suffix for recognizing federated user identities.  Typically your organization's domain name.")
+	f.StringVar(&c.groupsIncludePrefix, "groups-include-prefix", "", "Prefix for recognizing federated group names  Will be stripped from the translated user name.")
+	f.StringVar(&c.groupsExcludeSuffix, "groups-exclude-suffix", "", "Suffix for excluding federated group names.  Use this to filter out groups introduced by Google Groups for RBAC.")
 }
 
 func (c *FindCRBCommand) Execute(ctx context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
-	if c.userEmailSuffix == "" {
-		log.Printf("Error: --user-email-suffix must be specified.")
+	if c.userIncludeSuffix == "" {
+		log.Printf("Error: --user-include-suffix must be specified.")
 		return subcommands.ExitFailure
 	}
 
 	rec := &subjectRecognizer{
-		userEmailSuffix: c.userEmailSuffix,
+		userIncludePrefix:   c.userIncludePrefix,
+		userIncludeSuffix:   c.userIncludeSuffix,
+		groupsIncludePrefix: c.groupsIncludePrefix,
+		groupsExcludeSuffix: c.groupsExcludeSuffix,
 	}
 
 	// use the current context in kubeconfig
@@ -148,7 +158,11 @@ func (c *FindCRBCommand) Execute(ctx context.Context, f *flag.FlagSet, _ ...inte
 //
 // The result is suitable for applying via `kubectl apply`
 type RewriteCRBCommand struct {
-	userEmailSuffix   string
+	userIncludePrefix   string
+	userIncludeSuffix   string
+	groupsIncludePrefix string
+	groupsExcludeSuffix string
+
 	workforcePoolName string
 }
 
@@ -170,12 +184,16 @@ func (*RewriteCRBCommand) Usage() string {
 }
 
 func (c *RewriteCRBCommand) SetFlags(f *flag.FlagSet) {
-	f.StringVar(&c.userEmailSuffix, "user-email-suffix", "", "Suffix for recognizing federated user identities.  Typically your organization's domain name.")
+	f.StringVar(&c.userIncludePrefix, "user-include-prefix", "", "Prefix for recognizing federated user identities.  Will be stripped from the translated user name.")
+	f.StringVar(&c.userIncludeSuffix, "user-include-suffix", "", "Suffix for recognizing federated user identities.  Typically your organization's domain name.")
+	f.StringVar(&c.groupsIncludePrefix, "groups-include-prefix", "", "Prefix for recognizing federated group names  Will be stripped from the translated user name.")
+	f.StringVar(&c.groupsExcludeSuffix, "groups-exclude-suffix", "", "Suffix for excluding federated group names.  Use this to filter out groups introduced by Google Groups for RBAC.")
+
 	f.StringVar(&c.workforcePoolName, "workforce-pool-name", "", "The name of the Workforce Identity Pool being used to federate principals and groups into GCP.")
 }
 
 func (c *RewriteCRBCommand) Execute(ctx context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
-	if c.userEmailSuffix == "" {
+	if c.userIncludeSuffix == "" {
 		log.Printf("Error: --user-email-suffix must be specified.")
 		return subcommands.ExitFailure
 	}
@@ -185,8 +203,11 @@ func (c *RewriteCRBCommand) Execute(ctx context.Context, f *flag.FlagSet, _ ...i
 	}
 
 	rec := &subjectRecognizer{
-		userEmailSuffix:   c.userEmailSuffix,
-		workforcePoolName: c.workforcePoolName,
+		userIncludePrefix:   c.userIncludePrefix,
+		userIncludeSuffix:   c.userIncludeSuffix,
+		groupsIncludePrefix: c.groupsIncludePrefix,
+		groupsExcludeSuffix: c.groupsExcludeSuffix,
+		workforcePoolName:   c.workforcePoolName,
 	}
 
 	inputCRBs := rbacv1.ClusterRoleBindingList{}
@@ -242,8 +263,11 @@ func (c *RewriteCRBCommand) Execute(ctx context.Context, f *flag.FlagSet, _ ...i
 // FindRBCommand searches for and prints all RoleBindings that appear to
 // refer to users and groups federated using Identity Service for GKE.
 type FindRBCommand struct {
-	kubeConfig      string
-	userEmailSuffix string
+	kubeConfig          string
+	userIncludePrefix   string
+	userIncludeSuffix   string
+	groupsIncludePrefix string
+	groupsExcludeSuffix string
 }
 
 var _ subcommands.Command = (*FindRBCommand)(nil)
@@ -271,17 +295,23 @@ func (c *FindRBCommand) SetFlags(f *flag.FlagSet) {
 	}
 
 	f.StringVar(&c.kubeConfig, "kubeconfig", kubeConfigDefault, "absolute path to the kubeconfig file")
-	f.StringVar(&c.userEmailSuffix, "user-email-suffix", "", "Suffix for recognizing federated user identities.  Typically your organization's domain name.")
+	f.StringVar(&c.userIncludePrefix, "user-include-prefix", "", "Prefix for recognizing federated user identities.  Will be stripped from the translated user name.")
+	f.StringVar(&c.userIncludeSuffix, "user-include-suffix", "", "Suffix for recognizing federated user identities.  Typically your organization's domain name.")
+	f.StringVar(&c.groupsIncludePrefix, "groups-include-prefix", "", "Prefix for recognizing federated group names  Will be stripped from the translated user name.")
+	f.StringVar(&c.groupsExcludeSuffix, "groups-exclude-suffix", "", "Suffix for excluding federated group names.  Use this to filter out groups introduced by Google Groups for RBAC.")
 }
 
 func (c *FindRBCommand) Execute(ctx context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
-	if c.userEmailSuffix == "" {
+	if c.userIncludeSuffix == "" {
 		log.Printf("Error: --user-email-suffix must be specified.")
 		return subcommands.ExitFailure
 	}
 
 	rec := &subjectRecognizer{
-		userEmailSuffix: c.userEmailSuffix,
+		userIncludePrefix:   c.userIncludePrefix,
+		userIncludeSuffix:   c.userIncludeSuffix,
+		groupsIncludePrefix: c.groupsIncludePrefix,
+		groupsExcludeSuffix: c.groupsExcludeSuffix,
 	}
 
 	// use the current context in kubeconfig
@@ -347,7 +377,11 @@ func (c *FindRBCommand) Execute(ctx context.Context, f *flag.FlagSet, _ ...inter
 //
 // The result is suitable for applying via `kubectl apply`
 type RewriteRBCommand struct {
-	userEmailSuffix   string
+	userIncludePrefix   string
+	userIncludeSuffix   string
+	groupsIncludePrefix string
+	groupsExcludeSuffix string
+
 	workforcePoolName string
 }
 
@@ -369,12 +403,15 @@ func (*RewriteRBCommand) Usage() string {
 }
 
 func (c *RewriteRBCommand) SetFlags(f *flag.FlagSet) {
-	f.StringVar(&c.userEmailSuffix, "user-email-suffix", "", "Suffix for recognizing federated user identities.  Typically your organization's domain name.")
+	f.StringVar(&c.userIncludePrefix, "user-include-prefix", "", "Prefix for recognizing federated user identities.  Will be stripped from the translated user name.")
+	f.StringVar(&c.userIncludeSuffix, "user-include-suffix", "", "Suffix for recognizing federated user identities.  Typically your organization's domain name.")
+	f.StringVar(&c.groupsIncludePrefix, "groups-include-prefix", "", "Prefix for recognizing federated group names  Will be stripped from the translated user name.")
+	f.StringVar(&c.groupsExcludeSuffix, "groups-exclude-suffix", "", "Suffix for excluding federated group names.  Use this to filter out groups introduced by Google Groups for RBAC.")
 	f.StringVar(&c.workforcePoolName, "workforce-pool-name", "", "The name of the Workforce Identity Pool being used to federate principals and groups into GCP.")
 }
 
 func (c *RewriteRBCommand) Execute(ctx context.Context, f *flag.FlagSet, _ ...interface{}) subcommands.ExitStatus {
-	if c.userEmailSuffix == "" {
+	if c.userIncludeSuffix == "" {
 		log.Printf("Error: --user-email-suffix must be specified.")
 		return subcommands.ExitFailure
 	}
@@ -384,8 +421,11 @@ func (c *RewriteRBCommand) Execute(ctx context.Context, f *flag.FlagSet, _ ...in
 	}
 
 	rec := &subjectRecognizer{
-		userEmailSuffix:   c.userEmailSuffix,
-		workforcePoolName: c.workforcePoolName,
+		userIncludePrefix:   c.userIncludePrefix,
+		userIncludeSuffix:   c.userIncludeSuffix,
+		groupsIncludePrefix: c.groupsIncludePrefix,
+		groupsExcludeSuffix: c.groupsExcludeSuffix,
+		workforcePoolName:   c.workforcePoolName,
 	}
 
 	inputRBs := rbacv1.RoleBindingList{}
@@ -439,25 +479,50 @@ func (c *RewriteRBCommand) Execute(ctx context.Context, f *flag.FlagSet, _ ...in
 }
 
 type subjectRecognizer struct {
-	userEmailSuffix string
+	userIncludePrefix   string
+	userIncludeSuffix   string
+	groupsIncludePrefix string
+	groupsExcludeSuffix string
 
 	workforcePoolName string
 }
 
 func (r *subjectRecognizer) GetFederatedUser(sub rbacv1.Subject) (string, bool) {
-	if sub.APIGroup == "rbac.authorization.k8s.io" && sub.Kind == "User" && strings.HasSuffix(sub.Name, r.userEmailSuffix) {
-		return sub.Name, true
+	if sub.APIGroup != "rbac.authorization.k8s.io" {
+		return "", false
 	}
-
-	return "", false
+	if sub.Kind != "User" {
+		return "", false
+	}
+	if strings.HasPrefix(sub.Name, "system:") {
+		return "", false
+	}
+	if !strings.HasPrefix(sub.Name, r.userIncludePrefix) {
+		return "", false
+	}
+	if !strings.HasSuffix(sub.Name, r.userIncludeSuffix) {
+		return "", false
+	}
+	return strings.TrimPrefix(sub.Name, r.userIncludePrefix), true
 }
 
 func (r *subjectRecognizer) GetFederatedGroup(sub rbacv1.Subject) (string, bool) {
-	if sub.APIGroup == "rbac.authorization.k8s.io" && sub.Kind == "Group" && !strings.HasPrefix(sub.Name, "system:") {
-		return sub.Name, true
+	if sub.APIGroup != "rbac.authorization.k8s.io" {
+		return "", false
 	}
-
-	return "", false
+	if sub.Kind != "Group" {
+		return "", false
+	}
+	if strings.HasPrefix(sub.Name, "system:") {
+		return "", false
+	}
+	if !strings.HasPrefix(sub.Name, r.groupsIncludePrefix) {
+		return "", false
+	}
+	if strings.HasSuffix(sub.Name, r.groupsExcludeSuffix) {
+		return "", false
+	}
+	return strings.TrimPrefix(sub.Name, r.groupsIncludePrefix), true
 }
 
 func (r *subjectRecognizer) MigrateSubject(subIn rbacv1.Subject) rbacv1.Subject {
