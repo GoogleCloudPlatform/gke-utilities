@@ -1,4 +1,4 @@
-module github.com/ahmedtd/gke-utilities
+module github.com/GoogleCloudPlatform/gke-utilities
 
 go 1.20
 
