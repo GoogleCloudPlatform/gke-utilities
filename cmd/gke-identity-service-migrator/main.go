@@ -533,7 +533,7 @@ func (r *subjectRecognizer) GetFederatedGroup(sub rbacv1.Subject) (string, bool)
 	if !strings.HasPrefix(sub.Name, r.groupsIncludePrefix) {
 		return "", false
 	}
-	if strings.HasSuffix(sub.Name, r.groupsExcludeSuffix) {
+	if r.groupsExcludeSuffix != "" && strings.HasSuffix(sub.Name, r.groupsExcludeSuffix) {
 		return "", false
 	}
 	return strings.TrimPrefix(sub.Name, r.groupsIncludePrefix), true
