@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Command node-leaf-cert-expiry-check checks the expiry of node bootstrap leaf certificates
+// Command node-bootstrap-leaf-cert-expiry-check checks the expiry of node bootstrap leaf certificates
 // stored in the metadata of GKE nodes.
 package main
 
@@ -52,11 +52,10 @@ type CheckCommand struct {
 	cluster  string
 }
 
-func (*CheckCommand) Name() string     { return "node-leaf-cert-expiry-check" }
+func (*CheckCommand) Name() string     { return "node-bootstrap-leaf-cert-expiry-check" }
 func (*CheckCommand) Synopsis() string { return "Checks node leaf cert expiry" }
 func (*CheckCommand) Usage() string {
-	return `node-leaf-cert-expiry-check --project <project> --location <location> --cluster <cluster>
-`
+	return `node-bootstrap-leaf-cert-expiry-check --project <project> --location <location> --cluster <cluster>`
 }
 
 func (c *CheckCommand) SetFlags(f *flag.FlagSet) {
@@ -108,22 +107,24 @@ func (c *CheckCommand) checkNodePoolTemplates(ctx context.Context, computeServic
 	}
 	filter := strings.Join(conditions, " AND ")
 
-	resp, err := computeService.InstanceTemplates.AggregatedList(c.project).Filter(filter).Do()
-	if err != nil {
-		log.Printf("Error listing instance templates with filter: %v", err)
-		return
-	}
-
 	found := false
-	for _, scopedList := range resp.Items {
-		if len(scopedList.InstanceTemplates) > 0 {
-			found = true
-			for _, template := range scopedList.InstanceTemplates {
-				if template.Properties != nil && template.Properties.Metadata != nil {
-					c.checkTemplateMetadata(template.Properties.Metadata.Items, fmt.Sprintf("Template: %s", template.Name))
+	resp := computeService.InstanceTemplates.AggregatedList(c.project).Filter(filter)
+	err := resp.Pages(ctx, func(page *compute.InstanceTemplateAggregatedList) error {
+		for _, scopedList := range page.Items {
+			if len(scopedList.InstanceTemplates) > 0 {
+				found = true
+				for _, template := range scopedList.InstanceTemplates {
+					if template.Properties != nil && template.Properties.Metadata != nil {
+						c.checkTemplateMetadata(template.Properties.Metadata.Items, fmt.Sprintf("Template: %s", template.Name))
+					}
 				}
 			}
 		}
+		return nil
+	})
+	if err != nil {
+		log.Printf("Error listing instance templates with filter: %v", err)
+		return
 	}
 
 	if !found {
@@ -174,5 +175,5 @@ func (c *CheckCommand) checkCertExpiration(data []byte, key, source string) {
 		return
 	}
 
-	fmt.Printf("  [%s] %s: Expires on %s (Valid for %v)\n", source, key, cert.NotAfter.Format(time.RFC3339), time.Until(cert.NotAfter))
+	fmt.Printf("  [%s] %s: expires on %s (Valid for %v)\n", source, key, cert.NotAfter.Format(time.RFC3339), time.Until(cert.NotAfter))
 }

@@ -1,11 +1,20 @@
-# Node Leaf Cert Expiry Check
+# Node Bootstrap Leaf Cert Expiry Check
 
 This tool checks the expiry of node bootstrap leaf certificates stored in the instance template metadata used by GKE node pools. It parses the certificate from the kube_env metadata key and prints the expiration time for each certificate.
+
+## Before you begin
+
+1. **Install Go**: Ensure you have Go installed. You can download it from [golang.org](https://golang.org/).
+2. **Set up Credentials**: Ensure you have Application Default Credentials set up. You can do this by running:
+   ```bash
+   gcloud auth application-default login
+   ```
+   The account used must have permissions to read GKE clusters and Compute Engine instance templates in the target project.
 
 ## Usage
 
 ```bash
-go run cmd/node-leaf-cert-expiry-check/main.go node-leaf-cert-expiry-check --project <PROJECT_ID> --location <LOCATION> --cluster <CLUSTER_NAME>
+go run cmd/node-bootstrap-leaf-cert-expiry-check/main.go node-bootstrap-leaf-cert-expiry-check --project <PROJECT_ID> --location <LOCATION> --cluster <CLUSTER_NAME>
 ```
 
 ### Options
