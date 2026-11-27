@@ -29,3 +29,15 @@ Once the prerequisites are completed, migrate your Identity Service for GKE to G
 For more details on the migration guide, please contact your Google team. 
 
 If you encounter any issues with the tool, please raise a GitHub issue for this repo.
+
+## gke-wif-troubleshooter
+
+Use [gke-wif-troubleshooter](https://github.com/GoogleCloudPlatform/gke-utilities/tree/main/gke-wif-troubleshooter) to diagnose and resolve common configuration issues with Workload Identity Federation for GKE, including cluster Workload Pool enablement, Kubernetes Service Account (KSA) annotations, IAM policy bindings (GSA impersonation and direct KSA principal bindings), and node pool GKE Metadata Server labels.
+
+Install directly with Go:
+
+```bash
+go install github.com/GoogleCloudPlatform/gke-utilities/gke-wif-troubleshooter@latest
+```
+
+See the [gke-wif-troubleshooter README](https://github.com/GoogleCloudPlatform/gke-utilities/blob/main/gke-wif-troubleshooter/README.md) for prerequisites and usage examples.
